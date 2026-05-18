@@ -5,37 +5,23 @@
   gather_facts: no
 
   tasks:
+    - name: Install Python3 first
+      raw: yum install -y python3
+      
     - name: Install Docker
-      shell: |
-        sudo yum update -y
-        sudo yum install -y docker
-      args:
-        executable: /bin/bash
+      raw: yum install -y docker
 
     - name: Start Docker
-      shell: |
-        sudo systemctl start docker
-        sudo systemctl enable docker
-      args:
-        executable: /bin/bash
+      raw: systemctl start docker && systemctl enable docker
 
     - name: Add ec2-user to docker group
-      shell: sudo usermod -aG docker ec2-user
-      args:
-        executable: /bin/bash
+      raw: usermod -aG docker ec2-user
 
     - name: Install Docker Compose
-      shell: |
-        sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
-        sudo chmod +x /usr/local/bin/docker-compose
-      args:
-        executable: /bin/bash
+      raw: curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose
 
     - name: Create app directories
-      shell: |
-        mkdir -p /home/ec2-user/app/server
-      args:
-        executable: /bin/bash
+      raw: mkdir -p /home/ec2-user/app/server
 
     - name: Create docker-compose.yml
       copy:
@@ -117,8 +103,4 @@
           }
 
     - name: Run Docker Compose
-      shell: |
-        cd /home/ec2-user/app
-        sudo /usr/local/bin/docker-compose up -d
-      args:
-        executable: /bin/bash
+      raw: cd /home/ec2-user/app && /usr/local/bin/docker-compose up -d
