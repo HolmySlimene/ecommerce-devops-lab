@@ -64,12 +64,6 @@ resource "aws_security_group" "web_sg" {
   tags = { Name = "web-sg" }
 }
 
-# Key Pair (on l'importe depuis notre clé locale)
-resource "aws_key_pair" "ec2_key" {
-  key_name   = "ec2-lab-key"
-  public_key = file("~/.ssh/labsuser.pub")
-}
-
 # EC2 Instances
 resource "aws_instance" "web" {
   count                  = 2
@@ -77,7 +71,7 @@ resource "aws_instance" "web" {
   instance_type          = "t2.micro"
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
-  key_name               = aws_key_pair.ec2_key.key_name
+  key_name               = "vockey"
 
   tags = { Name = "web-${count.index + 1}" }
 }
