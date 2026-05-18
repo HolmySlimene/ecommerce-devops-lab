@@ -1,7 +1,7 @@
-- name: Deploy E-Commerce App
+- name: Deploy App
   hosts: web
   become: yes
-  gather_facts: false   # ✅ évite bug Python
+  gather_facts: false
 
   tasks:
 
@@ -16,11 +16,23 @@
         state: started
         enabled: yes
 
-    - name: Add ec2-user to docker group
-      user:
-        name: ec2-user
-        groups: docker
-        append: yes
+    - name: Install docker-compose
+      get_url:
+        url: https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
 
-    - name: Run nginx container
-      command: docker run -d -p 80:80 nginx
+    - name: Create app directory
+      file:
+        path: /home/ec2-user/app
+        state: directory
+
+    - name: Copy project files
+      copy:
+        src: ../
+        dest: /home/ec2-user/app
+
+    - name: Run docker-compose
+      command: docker-compose up -d
+      args:
+        chdir: /home/ec2-user/app
