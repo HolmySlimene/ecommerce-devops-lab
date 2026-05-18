@@ -6,39 +6,36 @@
 
   tasks:
     - name: Install Docker
-      yum:
-        name: docker
-        state: present
+      shell: |
+        sudo yum update -y
+        sudo yum install -y docker
+      args:
+        executable: /bin/bash
 
-    - name: Start and enable Docker
-      service:
-        name: docker
-        state: started
-        enabled: yes
+    - name: Start Docker
+      shell: |
+        sudo systemctl start docker
+        sudo systemctl enable docker
+      args:
+        executable: /bin/bash
 
     - name: Add ec2-user to docker group
-      user:
-        name: ec2-user
-        groups: docker
-        append: yes
+      shell: sudo usermod -aG docker ec2-user
+      args:
+        executable: /bin/bash
 
     - name: Install Docker Compose
-      get_url:
-        url: "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-linux-x86_64"
-        dest: /usr/local/bin/docker-compose
-        mode: '0755'
+      shell: |
+        sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
+      args:
+        executable: /bin/bash
 
-    - name: Create app directory
-      file:
-        path: /home/ec2-user/app
-        state: directory
-        owner: ec2-user
-
-    - name: Create server directory
-      file:
-        path: /home/ec2-user/app/server
-        state: directory
-        owner: ec2-user
+    - name: Create app directories
+      shell: |
+        mkdir -p /home/ec2-user/app/server
+      args:
+        executable: /bin/bash
 
     - name: Create docker-compose.yml
       copy:
@@ -61,3 +58,67 @@
               command: sh -c "npm install && node server.js"
               ports:
                 - "3000:3000"
+              depends_on:
+                - mongodb
+              environment:
+                - MONGO_URL=mongodb://mongodb:27017/ecommerce
+
+            nginx:
+              image: nginx:alpine
+              restart: always
+              ports:
+                - "80:80"
+              volumes:
+                - ./nginx.conf:/etc/nginx/conf.d/default.conf
+              depends_on:
+                - app
+
+    - name: Create Node.js server
+      copy:
+        dest: /home/ec2-user/app/server/server.js
+        content: |
+          const express = require('express');
+          const app = express();
+          app.get('/', (req, res) => {
+            res.send(`
+              <html>
+              <head><title>E-Commerce Store</title></head>
+              <body>
+                <h1>E-Commerce Store</h1>
+                <p>- Laptop $1200</p>
+                <p>- Phone $800</p>
+              </body>
+              </html>
+            `);
+          });
+          app.listen(3000, () => console.log('App running on port 3000'));
+
+    - name: Create package.json
+      copy:
+        dest: /home/ec2-user/app/server/package.json
+        content: |
+          {
+            "name": "ecommerce",
+            "version": "1.0.0",
+            "dependencies": {
+              "express": "^4.18.0"
+            }
+          }
+
+    - name: Create Nginx config
+      copy:
+        dest: /home/ec2-user/app/nginx.conf
+        content: |
+          server {
+            listen 80;
+            location / {
+              proxy_pass http://app:3000;
+            }
+          }
+
+    - name: Run Docker Compose
+      shell: |
+        cd /home/ec2-user/app
+        sudo /usr/local/bin/docker-compose up -d
+      args:
+        executable: /bin/bash
