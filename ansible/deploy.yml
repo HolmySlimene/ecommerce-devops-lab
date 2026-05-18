@@ -5,14 +5,29 @@
 
   tasks:
 
-    - name: Install Docker (Amazon Linux)
-      shell: amazon-linux-extras install docker -y
+    - name: Install Docker (Amazon Linux 2)
+      yum:
+        name: docker
+        state: present
+
+    - name: Install extra packages (if needed)
+      yum:
+        name:
+          - python3
+          - git
+        state: present
 
     - name: Start Docker
       service:
         name: docker
         state: started
         enabled: yes
+
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
 
     - name: Install docker-compose
       get_url:
