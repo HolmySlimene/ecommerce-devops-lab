@@ -5,47 +5,29 @@
 
   tasks:
 
-    - name: Install Docker (Amazon Linux 2)
-      yum:
-        name: docker
-        state: present
-
-    - name: Install extra packages (if needed)
-      yum:
-        name:
-          - python3
-          - git
-        state: present
-
-    - name: Start Docker
-      service:
-        name: docker
-        state: started
-        enabled: yes
-
-    - name: Add ec2-user to docker group
-      user:
-        name: ec2-user
-        groups: docker
-        append: yes
+    - name: Install Docker
+      shell: |
+        sudo yum install -y docker
+        sudo systemctl start docker
+        sudo systemctl enable docker
 
     - name: Install docker-compose
-      get_url:
-        url: https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64
-        dest: /usr/local/bin/docker-compose
-        mode: '0755'
+      shell: |
+        sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
 
     - name: Create app directory
       file:
         path: /home/ec2-user/app
         state: directory
 
-    - name: Copy project files
-      copy:
-        src: ../
+    - name: Clone project from GitHub
+      git:
+        repo: https://github.com/HolmySlimene/ecommerce-devops-lab.git
         dest: /home/ec2-user/app
+        version: main
 
-    - name: Run docker-compose
-      command: docker-compose up -d
-      args:
-        chdir: /home/ec2-user/app
+    - name: Run Docker Compose
+      shell: |
+        cd /home/ec2-user/app
+        docker-compose up -d
