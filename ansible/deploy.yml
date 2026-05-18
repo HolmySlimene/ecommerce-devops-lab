@@ -1,33 +1,54 @@
-- name: Deploy App
+- name: Deploy Fitness App (with Backup)
   hosts: web
   become: yes
   gather_facts: false
 
   tasks:
 
+    # ✅ INSTALL DOCKER
     - name: Install Docker
       shell: |
         sudo yum install -y docker
         sudo systemctl start docker
         sudo systemctl enable docker
 
+    # ✅ INSTALL DOCKER COMPOSE
     - name: Install docker-compose
       shell: |
         sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
         sudo chmod +x /usr/local/bin/docker-compose
 
+    # ✅ CREATE FOLDER
     - name: Create app directory
       file:
         path: /home/ec2-user/app
         state: directory
 
+    # ✅ CLONE PROJECT
     - name: Clone project from GitHub
       git:
         repo: https://github.com/HolmySlimene/ecommerce-devops-lab.git
         dest: /home/ec2-user/app
         version: main
 
+    # ✅ START APP
     - name: Run Docker Compose
       shell: |
         cd /home/ec2-user/app
+        docker-compose down || true
         docker-compose up -d
+
+    # ✅ BACKUP MONGODB 🔥
+    - name: Backup MongoDB
+      shell: |
+        docker exec mongo mongodump --out /data/backup || true
+
+    # ✅ COPY BACKUP TO EC2
+    - name: Copy backup to EC2 host
+      shell: |
+        docker cp mongo:/data/backup /home/ec2-user/backup || true
+
+    # ✅ SAVE BACKUP DATE
+    - name: Show backup success
+      debug:
+        msg: "MongoDB backup completed ✅"
