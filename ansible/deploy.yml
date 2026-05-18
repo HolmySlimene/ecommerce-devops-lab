@@ -1,6 +1,7 @@
 - name: Deploy E-Commerce App
   hosts: web
   become: yes
+  gather_facts: false   # ✅ évite bug Python
 
   tasks:
 
@@ -21,33 +22,5 @@
         groups: docker
         append: yes
 
-    - name: Install Docker Compose
-      get_url:
-        url: https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64
-        dest: /usr/local/bin/docker-compose
-        mode: '0755'
-
-    - name: Create app directory
-      file:
-        path: /home/ec2-user/app
-        state: directory
-        owner: ec2-user
-        group: ec2-user
-
-    - name: Create docker-compose.yml
-      copy:
-        dest: /home/ec2-user/app/docker-compose.yml
-        content: |
-          version: '3'
-          services:
-            web:
-              image: nginx
-              ports:
-                - "80:80"
-        owner: ec2-user
-        group: ec2-user
-
-    - name: Run Docker Compose
-      command: docker-compose up -d
-      args:
-        chdir: /home/ec2-user/app
+    - name: Run nginx container
+      command: docker run -d -p 80:80 nginx
