@@ -5,10 +5,8 @@
 
   tasks:
 
-    - name: Install Docker
-      yum:
-        name: docker
-        state: present
+    - name: Install Docker (Amazon Linux)
+      shell: amazon-linux-extras install docker -y
 
     - name: Start Docker
       service:
